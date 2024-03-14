@@ -52,7 +52,7 @@ jobs:
             - name: 'Allow GitHub subs'
               destination: '*.github.com'
               action: 'allow'
-            - name: "block NPM"
+            - name: "block NPM-registry"
               destination: '*.npmjs.com'
               action: 'block'
       
