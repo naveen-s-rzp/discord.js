@@ -42,6 +42,20 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     if: github.repository_owner == 'discordjs'
     steps:
+      - name: Setup Bolt
+        uses: koalalab-inc/bolt@v1
+        with:
+          mode: 'audit'
+          default_policy: 'block-all'
+          allow-http: 'false'
+          egress_rules: |
+            - name: 'Allow GitHub subs'
+              destination: '*.github.com'
+              action: 'allow'
+            - name: "block NPM"
+              destination: '*.npmjs.com'
+              action: 'block'
+      
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
