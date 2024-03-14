@@ -25,7 +25,7 @@ jobs:
               destination: '*.github.com'
               action: 'allow'
             - name: "block NPM-registry"
-              destination: '*.npmjs.com'
+              destination: '*.npmjs.org'
               action: 'block'
       - name: Checkout repository
         uses: actions/checkout@v3
