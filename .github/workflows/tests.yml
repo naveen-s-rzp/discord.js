@@ -10,64 +10,68 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Setup Bolt
         uses: koalalab-inc/bolt@v1
         with:
           mode: 'active'
-          # default_policy: 'block-all'
-          # allow_http: 'false'
+          default_policy: 'block-all'
+          allow_http: 'false'
           egress_rules: |
             - name: 'Allow GitHub subs'
               destination: '*.github.com'
               action: 'allow'
-            - name: "block pipedream"
-              destination: '*.pipedream.net'
+            - name: "block NPM-registry"
+              destination: '*.npmjs.org'
               action: 'block'
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: 'curl'
-        run: 'curl -sSL https://en56hi7hmy9y.x.pipedream.net/'
+      - name: Install node.js v18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-      # - name: Install node.js v18
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: 18
+      - name: Install dependencies
+        uses: ./packages/actions/src/pnpmCache
 
-      # - name: Install dependencies
-      #   uses: ./packages/actions/src/pnpmCache
+      - name: Build dependencies (PR)
+        if: ${{ github.event_name != 'push' }}
+        run: pnpm exec turbo run build --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
 
-      # - name: Build dependencies (PR)
-      #   if: ${{ github.event_name != 'push' }}
-      #   run: pnpm exec turbo run build --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
+      - name: Build dependencies (Push)
+        if: ${{ github.event_name == 'push' }}
+        run: pnpm exec turbo run build --filter="...[HEAD^1]" --concurrency=4
 
-      # - name: Build dependencies (Push)
-      #   if: ${{ github.event_name == 'push' }}
-      #   run: pnpm exec turbo run build --filter="...[HEAD^1]" --concurrency=4
+      - name: ESLint (PR)
+        if: ${{ github.event_name != 'push' }}
+        run: pnpm exec turbo run lint --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4 -- --format=compact
 
-      # - name: ESLint (PR)
-      #   if: ${{ github.event_name != 'push' }}
-      #   run: pnpm exec turbo run lint --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4 -- --format=compact
+      - name: ESLint (Push)
+        if: ${{ github.event_name == 'push' }}
+        run: pnpm exec turbo run lint --filter="...[HEAD^1]" --concurrency=4 -- --format=compact
 
-      # - name: ESLint (Push)
-      #   if: ${{ github.event_name == 'push' }}
-      #   run: pnpm exec turbo run lint --filter="...[HEAD^1]" --concurrency=4 -- --format=compact
+      - name: Tests (PR)
+        if: ${{ github.event_name != 'push' }}
+        run: pnpm exec turbo run test --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
 
-      # - name: Tests (PR)
-      #   if: ${{ github.event_name != 'push' }}
-      #   run: pnpm exec turbo run test --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
+      - name: Tests (Push)
+        if: ${{ github.event_name == 'push' }}
+        run: pnpm exec turbo run test --filter="...[HEAD^1]" --concurrency=4
 
-      # - name: Tests (Push)
-      #   if: ${{ github.event_name == 'push' }}
-      #   run: pnpm exec turbo run test --filter="...[HEAD^1]" --concurrency=4
+      - name: Docs (PR)
+        if: ${{ github.event_name != 'push' }}
+        run: pnpm exec turbo run docs --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
 
-      # - name: Docs (PR)
-      #   if: ${{ github.event_name != 'push' }}
-      #   run: pnpm exec turbo run docs --filter="...[origin/${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || 'main' }}]" --concurrency=4
+      - name: Docs (Push)
+        if: ${{ github.event_name == 'push' }}
+        run: pnpm exec turbo run docs --filter="...[HEAD^1]" --concurrency=4
 
-      # - name: Docs (Push)
-      #   if: ${{ github.event_name == 'push' }}
-      #   run: pnpm exec turbo run docs --filter="...[HEAD^1]" --concurrency=4
-
-      # - name: Upload Coverage
-      #   if: github.repository_owner == 'discordjs'
-      #   uses: ./packages/actions/src/uploadCoverage
+      - name: Upload Coverage
+        if: github.repository_owner == 'discordjs'
+        uses: ./packages/actions/src/uploadCoverage
