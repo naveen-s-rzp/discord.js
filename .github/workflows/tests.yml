@@ -14,9 +14,9 @@ jobs:
       - name: Setup Bolt
         uses: koalalab-inc/bolt@v1
         with:
-          mode: 'audit'
-          default_policy: 'block-all'
-          allow_http: 'false'
+          mode: 'active'
+          # default_policy: 'block-all'
+          # allow_http: 'false'
           egress_rules: |
             - name: 'Allow GitHub subs'
               destination: '*.github.com'
